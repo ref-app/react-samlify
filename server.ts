@@ -3,6 +3,16 @@ import * as bodyParser from "body-parser";
 import { getUser, createToken, verifyToken } from "./services/auth";
 import { assignEntity } from "./middleware";
 import * as express from "express";
+import { ServiceProvider } from "samlify/types/src/entity-sp";
+import { IdentityProvider } from "samlify/types/src/entity-idp";
+
+declare module "express-serve-static-core" {
+  interface Request {
+    idp: IdentityProvider;
+    user: { nameId: string };
+    sp: ServiceProvider;
+  }
+}
 
 export default function server(app: express.Application) {
   app.use(bodyParser.urlencoded({ extended: false }));
@@ -12,7 +22,7 @@ export default function server(app: express.Application) {
   app.use(assignEntity);
 
   // assertion consumer service endpoint (post-binding)
-  app.post("/sp/acs", async (req: any, res) => {
+  app.post("/sp/acs", async (req, res) => {
     try {
       const { extract } = await req.sp.parseLoginResponse(req.idp, "post", req);
       const { login } = extract.attributes;
@@ -35,7 +45,7 @@ export default function server(app: express.Application) {
   });
 
   // call to init a sso login with redirect binding
-  app.get("/sso/redirect", async (req: any, res) => {
+  app.get("/sso/redirect", async (req, res) => {
     const { id, context: redirectUrl } = await req.sp.createLoginRequest(
       req.idp,
       "redirect"
@@ -43,7 +53,7 @@ export default function server(app: express.Application) {
     return res.redirect(redirectUrl);
   });
 
-  app.get("/sso/post", async (req: any, res) => {
+  app.get("/sso/post", async (req, res) => {
     const { id, context } = await req.sp.createLoginRequest(req.idp, "post");
     // construct form data
     const endpoint = req.idp.entityMeta.getSingleSignOnService(
@@ -59,12 +69,12 @@ export default function server(app: express.Application) {
   });
 
   // endpoint where consuming logout response
-  app.post("/sp/sso/logout", async (req: any, res) => {
+  app.post("/sp/sso/logout", async (req, res) => {
     const { extract } = await req.sp.parseLogoutResponse(req.idp, "post", req);
     return res.redirect("/logout");
   });
 
-  app.get("/sp/single_logout/redirect", async (req: any, res) => {
+  app.get("/sp/single_logout/redirect", async (req, res) => {
     const { context: redirectUrl } = await req.sp.createLogoutRequest(
       req.idp,
       "redirect",
@@ -76,11 +86,11 @@ export default function server(app: express.Application) {
   });
 
   // distribute the metadata
-  app.get("/sp/metadata", (req: any, res) => {
+  app.get("/sp/metadata", (req, res) => {
     res.header("Content-Type", "text/xml").send(req.sp.getMetadata());
   });
 
-  app.get("/idp/metadata", (req: any, res) => {
+  app.get("/idp/metadata", (req, res) => {
     res.header("Content-Type", "text/xml").send(req.idp.getMetadata());
   });
 
