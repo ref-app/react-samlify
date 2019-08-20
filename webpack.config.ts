@@ -1,12 +1,13 @@
-import * as path from 'path';
-import server from './server';
+import * as path from "path";
+import server from "./server";
+import webpack from "webpack";
 
-module.exports = {
+const config: webpack.Configuration = {
   entry: "./src/index.tsx",
   output: {
-    path: path.join(__dirname, '/dist'),
-    filename: 'bundle.js',
-    publicPath: '/dist/'
+    path: path.join(__dirname, "/dist"),
+    filename: "bundle.js",
+    publicPath: "/dist/"
   },
 
   // Enable sourcemaps for debugging webpack's output.
@@ -20,28 +21,30 @@ module.exports = {
   devServer: {
     historyApiFallback: true,
     compress: true,
-    before: (app) => server(app)
+    before: app => server(app)
   },
 
   module: {
     rules: [
-      { 
+      {
         test: /\.tsx?$/,
-        include: path.resolve(__dirname, 'src'),
+        include: path.resolve(__dirname, "src"),
         exclude: /node_modules/,
         loader: "ts-loader"
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        use: ["style-loader", "css-loader"]
       },
       // All output '.js' files will have any sourcemaps re-processed by 'source-map-loader'.
       { enforce: "pre", test: /\.js$/, loader: "source-map-loader" }
     ]
-  },
+  }
 
   // When importing a module whose path matches one of the following, just
   // assume a corresponding global variable exists and use that instead.
   // This is important because it allows us to avoid bundling all of our
   // dependencies, which allows browsers to cache those libraries between builds.
 };
+
+export default config;
