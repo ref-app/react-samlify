@@ -9,6 +9,7 @@ const config: webpack.Configuration = {
     filename: "bundle.js",
     publicPath: "/dist/"
   },
+  watch: true,
 
   // Enable sourcemaps for debugging webpack's output.
   devtool: "source-map",
@@ -21,7 +22,6 @@ const config: webpack.Configuration = {
   devServer: {
     historyApiFallback: true,
     compress: true,
-    writeToDisk: false,
     before: app => server(app)
   },
 

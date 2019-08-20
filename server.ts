@@ -68,22 +68,34 @@ export default function server(app: express.Application) {
     return res.send(requestForm);
   });
 
-  // endpoint where consuming logout response
+  // endpoint for consuming logout response
   app.post("/sp/sso/logout", async (req, res) => {
-    const { extract } = await req.sp.parseLogoutResponse(req.idp, "post", req);
-    return res.redirect("/logout");
+    try {
+      const { extract } = await req.sp.parseLogoutResponse(
+        req.idp,
+        "post",
+        req
+      );
+      return res.redirect("/logout");
+    } catch (err) {
+      console.error(err);
+    }
   });
 
   app.get("/sp/single_logout/redirect", async (req, res) => {
-    const logoutNameID = req.query.email;
-    const { context: redirectUrl } = await req.sp.createLogoutRequest(
-      req.idp,
-      "redirect",
-      {
-        logoutNameID
-      }
-    );
-    return res.redirect(redirectUrl);
+    const logoutNameID = req.query.userId;
+    try {
+      const { context: redirectUrl } = await req.sp.createLogoutRequest(
+        req.idp,
+        "redirect",
+        {
+          logoutNameID
+        }
+      );
+      return res.redirect(redirectUrl);
+    } catch (err) {
+      console.error(err);
+    }
   });
 
   // distribute the metadata

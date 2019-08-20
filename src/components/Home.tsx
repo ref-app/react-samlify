@@ -76,10 +76,10 @@ export function Home(props: Props) {
 
   // initialize single logout from sp side
   const singleLogoutRedirect = () => {
+    // Enhancement: send the jwt-encoded auth token from localstorage instead
     const query = getQuery(
-      profile && profile.email ? { email: profile.email } : {}
+      profile && profile.email ? { userId: profile.email } : {}
     );
-    alert(query);
     window.location.href = `/sp/single_logout/redirect${query}`;
   };
 
