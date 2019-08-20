@@ -1,17 +1,17 @@
-import React, { useState, useEffect, ReactNode } from 'react';
-import { RouteComponentProps } from 'react-router';
-import { parse } from 'query-string';
-import axios from 'axios';
+import React, { useState, useEffect, ReactNode } from "react";
+import { RouteComponentProps } from "react-router";
+import { parse, stringify } from "query-string";
+import axios from "axios";
 
-import './index.css';
+import "./index.css";
 
-const LOCALSTORAGE_TOKEN_FIELD = 'auth_token';
+const LOCALSTORAGE_TOKEN_FIELD = "auth_token";
 
 type Props = RouteComponentProps & {};
 
 type Profile = {
   email: string;
-}
+};
 
 type SamlOption = {
   encrypted: boolean;
@@ -19,16 +19,16 @@ type SamlOption = {
 
 const Container = (props: { children: ReactNode }) => {
   return (
-    <div className="vh-100 system-sans-serif flex flex-column items-center justify-center"> 
+    <div className="vh-100 system-sans-serif flex flex-column items-center justify-center">
       {props.children}
     </div>
-  )
+  );
 };
 
-const Button = (props: { children: ReactNode; onClick: Function; }) => {
+const Button = (props: { children: ReactNode; onClick: Function }) => {
   return (
     <button
-      style={{ border: '1px solid #aaa' }}
+      style={{ border: "1px solid #aaa" }}
       className="pa3 bg-transparent ma2 br3 f6 silver-gray outline-0 pointer"
       onClick={() => props.onClick()}
     >
@@ -38,47 +38,56 @@ const Button = (props: { children: ReactNode; onClick: Function; }) => {
 };
 
 export function Home(props: Props) {
-
   const [authenticated, setAuthenticated] = useState<boolean>(false);
   const [profile, setProfile] = useState<Profile>({ email: null });
   const [samlOption, setSamlOption] = useState<SamlOption>({ encrypted: true });
 
-  const parseQuery = () => {
-    console.log('--------->>>', samlOption);
-    const query = samlOption.encrypted ? '?encrypted=true' : '';
-    return query;
+  const getQuery = (options: Object = {}) => {
+    console.log("--------->>>", samlOption);
+    const mergedOptions: any = { ...options };
+    if (samlOption.encrypted) {
+      mergedOptions.encrypted = true;
+    }
+    const queryString = stringify(mergedOptions);
+    return queryString ? `?${queryString}` : "";
   };
 
   const initRedirectRequest = () => {
-    window.location.href = `/sso/redirect${parseQuery()}`;
+    window.location.href = `/sso/redirect${getQuery()}`;
   };
 
   const initPostRequest = () => {
-    window.location.href = `/sso/post${parseQuery()}`;
+    window.location.href = `/sso/post${getQuery()}`;
   };
 
   const viewSpMetadata = () => {
-    window.open(`/sp/metadata${parseQuery()}`);
+    window.open(`/sp/metadata${getQuery()}`);
   };
 
   const viewIdpMetadata = () => {
-    window.open(`/idp/metadata${parseQuery()}`);
+    window.open(`/idp/metadata${getQuery()}`);
   };
 
   const logout = () => {
     window.localStorage.removeItem(LOCALSTORAGE_TOKEN_FIELD);
     setAuthenticated(false);
     setProfile({ email: null });
-  }
+  };
 
   // initialize single logout from sp side
   const singleLogoutRedirect = () => {
-    window.location.href = `/sp/single_logout/redirect${parseQuery()}`;
+    const query = getQuery(
+      profile && profile.email ? { email: profile.email } : {}
+    );
+    alert(query);
+    window.location.href = `/sp/single_logout/redirect${query}`;
   };
 
   const getProfile = async (token: string) => {
     try {
-      const { data } = await axios.get<{profile: Profile}>('/profile', { headers: { Authorization: `Bearer ${token}` } });
+      const { data } = await axios.get<{ profile: Profile }>("/profile", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setAuthenticated(true);
       setProfile(data.profile);
     } catch (e) {
@@ -92,7 +101,7 @@ export function Home(props: Props) {
     setSamlOption({
       ...samlOption,
       encrypted: !samlOption.encrypted
-    })
+    });
   };
 
   const init = async () => {
@@ -108,8 +117,8 @@ export function Home(props: Props) {
     if (params.auth_token && !Array.isArray(params.auth_token)) {
       window.localStorage.setItem(LOCALSTORAGE_TOKEN_FIELD, params.auth_token);
       await getProfile(params.auth_token);
-      // remove the auth_token part in 
-      props.history.replace('/');
+      // remove the auth_token part in
+      props.history.replace("/");
     }
     // initial state
   };
@@ -117,24 +126,16 @@ export function Home(props: Props) {
   useEffect(() => {
     init();
     return () => null;
-  }, [])
+  }, []);
 
   if (!authenticated) {
     return (
       <Container>
         <div className="">
-          <Button onClick={() => initRedirectRequest()}>
-            Okta - redirect
-          </Button>
-          <Button onClick={() => initPostRequest()}>
-            Okta - post
-          </Button>
-          <Button onClick={() => viewSpMetadata()}>
-            SP Metadata
-          </Button>
-          <Button onClick={() => viewIdpMetadata()}>
-            Okta Metadata
-          </Button>
+          <Button onClick={() => initRedirectRequest()}>Okta - redirect</Button>
+          <Button onClick={() => initPostRequest()}>Okta - post</Button>
+          <Button onClick={() => viewSpMetadata()}>SP Metadata</Button>
+          <Button onClick={() => viewIdpMetadata()}>Okta Metadata</Button>
         </div>
         <div className="pb2 f6 silver mv3 bb b--black-20 bw1 tc">Options</div>
         <div>
@@ -145,8 +146,8 @@ export function Home(props: Props) {
               defaultChecked={samlOption.encrypted}
               onClick={() => toggleEncrypted()}
             />
-            <span className="checkmark"></span>
-          </label> 
+            <span className="checkmark" />
+          </label>
         </div>
       </Container>
     );
@@ -154,12 +155,17 @@ export function Home(props: Props) {
   {
     /** render screen after login in */
   }
-  return <Container>
-    <div className="flex flex-column">
-      <span className="mb3">Welcome back <b>{profile.email}</b></span>
-      <Button onClick={() => logout()}>Logout</Button>
-      <Button onClick={() => singleLogoutRedirect()}>Single Logout (Redirect)</Button>
-    </div>
-  </Container>
-
+  return (
+    <Container>
+      <div className="flex flex-column">
+        <span className="mb3">
+          Welcome back <b>{profile.email}</b>
+        </span>
+        <Button onClick={() => logout()}>Logout</Button>
+        <Button onClick={() => singleLogoutRedirect()}>
+          Single Logout (Redirect)
+        </Button>
+      </div>
+    </Container>
+  );
 }

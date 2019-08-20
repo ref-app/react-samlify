@@ -75,11 +75,12 @@ export default function server(app: express.Application) {
   });
 
   app.get("/sp/single_logout/redirect", async (req, res) => {
+    const logoutNameID = req.query.email;
     const { context: redirectUrl } = await req.sp.createLogoutRequest(
       req.idp,
       "redirect",
       {
-        logoutNameID: "user.passify.io@gmail.com"
+        logoutNameID
       }
     );
     return res.redirect(redirectUrl);

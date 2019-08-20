@@ -21,6 +21,7 @@ const config: webpack.Configuration = {
   devServer: {
     historyApiFallback: true,
     compress: true,
+    writeToDisk: false,
     before: app => server(app)
   },
 
