@@ -105,7 +105,7 @@ export function Home(props: Props) {
     }
     // this section
     const params = parse(props.location.search);
-    if (params.auth_token) {
+    if (params.auth_token && !Array.isArray(params.auth_token)) {
       window.localStorage.setItem(LOCALSTORAGE_TOKEN_FIELD, params.auth_token);
       await getProfile(params.auth_token);
       // remove the auth_token part in 
