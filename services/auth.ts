@@ -18,7 +18,6 @@ export function getUser(login: string, provider: SSOProvider) {
       }
       break;
     case "azure":
-      console.log("Azure user id:" + login);
       return {
         user_id: "deadbeef-deadbeef",
         email: login
