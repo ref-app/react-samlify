@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as bodyParser from "body-parser";
 import { getUser, createToken, verifyToken } from "./services/auth";
-import { assignEntity } from "./middleware";
+import { assignEntity, SSOProvider } from "./middleware";
 import * as express from "express";
 import { ServiceProvider } from "samlify/types/src/entity-sp";
 import { IdentityProvider } from "samlify/types/src/entity-idp";
@@ -11,6 +11,7 @@ declare module "express-serve-static-core" {
     idp: IdentityProvider;
     user: { nameId: string };
     sp: ServiceProvider;
+    ssoProvider: SSOProvider;
   }
 }
 
@@ -34,7 +35,10 @@ export default function server(app: express.Application) {
 
       if (payload) {
         // create session and redirect to the session page
-        const token = createToken(payload);
+        const token = createToken({
+          ...payload,
+          provider: req.ssoProvider
+        });
         return res.redirect(`/?auth_token=${token}`);
       }
       throw new Error("ERR_USER_NOT_FOUND");

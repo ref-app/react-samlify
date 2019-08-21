@@ -3,6 +3,8 @@ import * as fs from "fs";
 import * as validator from "@authenio/samlify-node-xmllint";
 import { RequestHandler } from "express";
 
+export type SSOProvider = "okta" | "azure";
+
 const binding = samlify.Constants.namespace.binding;
 
 samlify.setSchemaValidator(validator);
@@ -59,13 +61,21 @@ const spEnc = samlify.ServiceProvider({
 });
 
 export const assignEntity: RequestHandler = (req, res, next) => {
-  req.idp = oktaIdp;
-  req.sp = sp;
-
-  if (req.query && req.query.encrypted) {
-    req.idp = oktaIdpEnc;
-    req.sp = spEnc;
+  const {
+    provider = "okta",
+    encrypted = false
+  }: { provider?: SSOProvider; encrypted?: boolean } = req.query || {};
+  if (provider === "azure") {
+  } else {
+    if (encrypted) {
+      req.idp = oktaIdpEnc;
+      req.sp = spEnc;
+    } else {
+      req.idp = oktaIdp;
+      req.sp = sp;
+    }
   }
+  req.ssoProvider = provider;
 
   return next();
 };

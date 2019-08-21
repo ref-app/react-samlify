@@ -9,13 +9,17 @@ const LOCALSTORAGE_TOKEN_FIELD = "auth_token";
 
 type Props = RouteComponentProps & {};
 
+type SSOProvider = "okta" | "azure";
+
 type Profile = {
-  email: string;
+  email?: string;
+  provider?: SSOProvider;
 };
 
 type SamlOption = {
   encrypted: boolean;
 };
+
 
 const Container = (props: { children: ReactNode }) => {
   return (
@@ -24,25 +28,52 @@ const Container = (props: { children: ReactNode }) => {
     </div>
   );
 };
+interface OnClickUrl {
+  url: string;
+  newWindow?: boolean;
+}
+type OnClickOptions = OnClickUrl | (() => void);
+const isUrl = (options: OnClickOptions): options is OnClickUrl =>
+  typeof options === "object";
 
-const Button = (props: { children: ReactNode; onClick: Function }) => {
-  return (
-    <button
-      style={{ border: "1px solid #aaa" }}
-      className="pa3 bg-transparent ma2 br3 f6 silver-gray outline-0 pointer"
-      onClick={() => props.onClick()}
-    >
-      {props.children}
-    </button>
-  );
+const Button = ({
+  children,
+  onClick: action
+}: React.PropsWithChildren<{
+  onClick: OnClickOptions;
+}>) => {
+  const buttonClass =
+    "pa3 bg-transparent ma2 br3 f6 silver-gray outline-0 pointer";
+  const buttonStyle: React.CSSProperties = { border: "1px solid #aaa" };
+  if (isUrl(action)) {
+    return (
+      <form
+        action={action.url}
+        target={action.newWindow ? "_blank" : undefined}
+        style={{ display: "inline" }}
+      >
+        <button className={buttonClass} style={buttonStyle} type="submit">
+          {children}
+        </button>
+      </form>
+    );
+  } else {
+    return (
+      <button className={buttonClass} style={buttonStyle} onClick={action}>
+        {children}
+      </button>
+    );
+  }
 };
 
 export function Home(props: Props) {
   const [authenticated, setAuthenticated] = useState<boolean>(false);
-  const [profile, setProfile] = useState<Profile>({ email: null });
+  const [profile, setProfile] = useState<Profile>({ });
   const [samlOption, setSamlOption] = useState<SamlOption>({ encrypted: true });
 
-  const getQuery = (options: Object = {}) => {
+  const getQuery = (
+    options: { userId?: string; provider?: SSOProvider } = {}
+  ) => {
     console.log("--------->>>", samlOption);
     const mergedOptions: any = { ...options };
     if (samlOption.encrypted) {
@@ -52,26 +83,20 @@ export function Home(props: Props) {
     return queryString ? `?${queryString}` : "";
   };
 
-  const initRedirectRequest = () => {
-    window.location.href = `/sso/redirect${getQuery()}`;
-  };
+  const initRedirectRequestUrl = (provider: SSOProvider) =>
+    `/sso/redirect${getQuery({provider})}`;
 
-  const initPostRequest = () => {
-    window.location.href = `/sso/post${getQuery()}`;
-  };
+  const initPostRequestUrl = (provider: SSOProvider) =>
+    `/sso/post${getQuery({provider})}`;
 
-  const viewSpMetadata = () => {
-    window.open(`/sp/metadata${getQuery()}`);
-  };
+  const viewSpMetadataUrl = () => `/sp/metadata${getQuery()}`;
 
-  const viewIdpMetadata = () => {
-    window.open(`/idp/metadata${getQuery()}`);
-  };
+  const viewIdpMetadataUrl = () => `/idp/metadata${getQuery()}`;
 
   const logout = () => {
     window.localStorage.removeItem(LOCALSTORAGE_TOKEN_FIELD);
     setAuthenticated(false);
-    setProfile({ email: null });
+    setProfile({ });
   };
 
   // initialize single logout from sp side
@@ -132,10 +157,24 @@ export function Home(props: Props) {
     return (
       <Container>
         <div className="">
-          <Button onClick={() => initRedirectRequest()}>Okta - redirect</Button>
-          <Button onClick={() => initPostRequest()}>Okta - post</Button>
-          <Button onClick={() => viewSpMetadata()}>SP Metadata</Button>
-          <Button onClick={() => viewIdpMetadata()}>Okta Metadata</Button>
+          <Button onClick={{ url: initRedirectRequestUrl("okta") }}>
+            Okta - redirect
+          </Button>
+          <Button onClick={{ url: initPostRequestUrl("okta") }}>
+            Okta - post
+          </Button>
+          <Button onClick={{ url: initRedirectRequestUrl("azure") }}>
+            Azure - redirect
+          </Button>
+          <Button onClick={{ url: initPostRequestUrl("azure") }}>
+            Azure - post
+          </Button>
+          <Button onClick={{ url: viewSpMetadataUrl(), newWindow: true }}>
+            SP Metadata
+          </Button>
+          <Button onClick={{ url: viewIdpMetadataUrl(), newWindow: true }}>
+            Okta Metadata
+          </Button>
         </div>
         <div className="pb2 f6 silver mv3 bb b--black-20 bw1 tc">Options</div>
         <div>
@@ -160,6 +199,9 @@ export function Home(props: Props) {
       <div className="flex flex-column">
         <span className="mb3">
           Welcome back <b>{profile.email}</b>
+        </span>
+        <span className="mb3">
+          Using <em>{profile.provider}</em> provider
         </span>
         <Button onClick={() => logout()}>Logout</Button>
         <Button onClick={() => singleLogoutRedirect()}>

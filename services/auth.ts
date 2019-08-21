@@ -13,7 +13,7 @@ export function getUser(login: string) {
       email: login
     };
   }
-  return null;
+  return undefined;
 }
 
 export function createToken(payload: string | object | Buffer) {
