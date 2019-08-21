@@ -1,8 +1,15 @@
 import * as fs from "fs";
 import * as bodyParser from "body-parser";
 import { getUser, createToken, verifyToken } from "./services/auth";
-import { assignEntity } from "./middleware";
+import { assignEntity, SSOProvider } from "./middleware";
 import * as express from "express";
+
+const getLoginUserIdFromExtract = (
+  extract: any,
+  provider: SSOProvider
+): string | undefined => {
+  return extract.nameID;
+};
 
 export default function server(app: express.Application) {
   app.use(bodyParser.urlencoded({ extended: false }));
@@ -14,10 +21,11 @@ export default function server(app: express.Application) {
   // assertion consumer service endpoint (post-binding)
   app.post("/sp/acs", async (req, res) => {
     try {
-      const { extract } = await req.sp.parseLoginResponse(req.idp, "post", req);
-      const { login } = extract.attributes;
+      const sp = req.sp;
+      const { extract } = await sp.parseLoginResponse(req.idp, "post", req);
+      const login = getLoginUserIdFromExtract(extract, req.ssoProvider);
       // get your system user
-      const payload = getUser(login);
+      const payload = getUser(login, req.ssoProvider);
 
       // assign req user
       req.user = { nameId: login };

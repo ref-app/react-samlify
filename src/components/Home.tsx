@@ -74,12 +74,13 @@ export function Home(props: Props) {
   const getQuery = (
     options: { userId?: string; provider?: SSOProvider } = {}
   ) => {
-    console.log("--------->>>", samlOption);
     const mergedOptions: any = { ...options };
     if (samlOption.encrypted) {
+      // Only add if true
       mergedOptions.encrypted = true;
     }
     const queryString = stringify(mergedOptions);
+    console.log("--------->>>", queryString);
     return queryString ? `?${queryString}` : "";
   };
 
@@ -132,7 +133,7 @@ export function Home(props: Props) {
 
   const init = async () => {
     const token = window.localStorage.getItem(LOCALSTORAGE_TOKEN_FIELD);
-    // if the token is already stored in localstoarge, call the service to verify if it's expired
+    // if the token is already stored in localStorage, call the service to verify if it's expired
     // if anything wrong, go back to the login scene
     if (token) {
       // verify the current auth token
@@ -143,7 +144,7 @@ export function Home(props: Props) {
     if (params.auth_token && !Array.isArray(params.auth_token)) {
       window.localStorage.setItem(LOCALSTORAGE_TOKEN_FIELD, params.auth_token);
       await getProfile(params.auth_token);
-      // remove the auth_token part in
+      // remove the auth_token part in the url
       props.history.replace("/");
     }
     // initial state

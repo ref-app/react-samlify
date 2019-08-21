@@ -34,7 +34,7 @@ interface ECSOptions {
  */
 const getAssertionUrl = (queryParams: ECSOptions) => {
   // We have no control over the okta login urls so remove that from the query params
-  if (queryParams.provider) {
+  if (queryParams.provider === "okta") {
     delete queryParams.provider;
   }
   const baseUrl =
@@ -131,7 +131,6 @@ const spEnc = createServiceProvider(
 );
 
 export const assignEntity: RequestHandler = (req, res, next) => {
-  console.info("assignEntity: " + JSON.stringify(req.query || {}));
   const { provider = "okta", encrypted = false }: ECSOptions = req.query || {};
   if (provider === "azure") {
     req.idp = azureIdp;
