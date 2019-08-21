@@ -3,17 +3,6 @@ import * as bodyParser from "body-parser";
 import { getUser, createToken, verifyToken } from "./services/auth";
 import { assignEntity, SSOProvider } from "./middleware";
 import * as express from "express";
-import { ServiceProvider } from "samlify/types/src/entity-sp";
-import { IdentityProvider } from "samlify/types/src/entity-idp";
-
-declare module "express-serve-static-core" {
-  interface Request {
-    idp: IdentityProvider;
-    user: { nameId: string };
-    sp: ServiceProvider;
-    ssoProvider: SSOProvider;
-  }
-}
 
 export default function server(app: express.Application) {
   app.use(bodyParser.urlencoded({ extended: false }));
