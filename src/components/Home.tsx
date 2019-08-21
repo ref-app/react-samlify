@@ -20,7 +20,6 @@ type SamlOption = {
   encrypted: boolean;
 };
 
-
 const Container = (props: { children: ReactNode }) => {
   return (
     <div className="vh-100 system-sans-serif flex flex-column items-center justify-center">
@@ -46,16 +45,17 @@ const Button = ({
     "pa3 bg-transparent ma2 br3 f6 silver-gray outline-0 pointer";
   const buttonStyle: React.CSSProperties = { border: "1px solid #aaa" };
   if (isUrl(action)) {
+    const { url, newWindow = false } = action;
     return (
-      <form
-        action={action.url}
-        target={action.newWindow ? "_blank" : undefined}
-        style={{ display: "inline" }}
+      <button
+        className={buttonClass}
+        style={buttonStyle}
+        onClick={() =>
+          newWindow ? window.open(url) : (window.location.href = url)
+        }
       >
-        <button className={buttonClass} style={buttonStyle} type="submit">
-          {children}
-        </button>
-      </form>
+        {children}
+      </button>
     );
   } else {
     return (
@@ -68,7 +68,7 @@ const Button = ({
 
 export function Home(props: Props) {
   const [authenticated, setAuthenticated] = useState<boolean>(false);
-  const [profile, setProfile] = useState<Profile>({ });
+  const [profile, setProfile] = useState<Profile>({});
   const [samlOption, setSamlOption] = useState<SamlOption>({ encrypted: true });
 
   const getQuery = (
@@ -84,19 +84,20 @@ export function Home(props: Props) {
   };
 
   const initRedirectRequestUrl = (provider: SSOProvider) =>
-    `/sso/redirect${getQuery({provider})}`;
+    `/sso/redirect${getQuery({ provider })}`;
 
   const initPostRequestUrl = (provider: SSOProvider) =>
-    `/sso/post${getQuery({provider})}`;
+    `/sso/post${getQuery({ provider })}`;
 
   const viewSpMetadataUrl = () => `/sp/metadata${getQuery()}`;
 
-  const viewIdpMetadataUrl = () => `/idp/metadata${getQuery()}`;
+  const viewIdpMetadataUrl = (provider: SSOProvider) =>
+    `/idp/metadata${getQuery({ provider })}`;
 
   const logout = () => {
     window.localStorage.removeItem(LOCALSTORAGE_TOKEN_FIELD);
     setAuthenticated(false);
-    setProfile({ });
+    setProfile({});
   };
 
   // initialize single logout from sp side
@@ -157,24 +158,37 @@ export function Home(props: Props) {
     return (
       <Container>
         <div className="">
-          <Button onClick={{ url: initRedirectRequestUrl("okta") }}>
-            Okta - redirect
-          </Button>
-          <Button onClick={{ url: initPostRequestUrl("okta") }}>
-            Okta - post
-          </Button>
-          <Button onClick={{ url: initRedirectRequestUrl("azure") }}>
-            Azure - redirect
-          </Button>
-          <Button onClick={{ url: initPostRequestUrl("azure") }}>
-            Azure - post
-          </Button>
-          <Button onClick={{ url: viewSpMetadataUrl(), newWindow: true }}>
-            SP Metadata
-          </Button>
-          <Button onClick={{ url: viewIdpMetadataUrl(), newWindow: true }}>
-            Okta Metadata
-          </Button>
+          <div style={{ display: "block" }}>
+            <Button onClick={{ url: initRedirectRequestUrl("okta") }}>
+              Okta - redirect
+            </Button>
+            <Button onClick={{ url: initPostRequestUrl("okta") }}>
+              Okta - post
+            </Button>
+            <Button
+              onClick={{ url: viewIdpMetadataUrl("okta"), newWindow: true }}
+            >
+              Okta Metadata
+            </Button>
+          </div>
+          <div style={{ display: "block" }}>
+            <Button onClick={{ url: initRedirectRequestUrl("azure") }}>
+              Azure - redirect
+            </Button>
+            <Button onClick={{ url: initPostRequestUrl("azure") }}>
+              Azure - post
+            </Button>
+            <Button
+              onClick={{ url: viewIdpMetadataUrl("azure"), newWindow: true }}
+            >
+              Azure Metadata
+            </Button>
+          </div>
+          <div style={{ display: "block" }}>
+            <Button onClick={{ url: viewSpMetadataUrl(), newWindow: true }}>
+              SP Metadata
+            </Button>
+          </div>
         </div>
         <div className="pb2 f6 silver mv3 bb b--black-20 bw1 tc">Options</div>
         <div>

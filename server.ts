@@ -32,7 +32,11 @@ export default function server(app: express.Application) {
       }
       throw new Error("ERR_USER_NOT_FOUND");
     } catch (e) {
-      console.error("[FATAL] when parsing login response sent from okta", e);
+      const provider = req.ssoProvider || "okta";
+      console.error(
+        `[FATAL] when parsing login response sent from ${provider}`,
+        e
+      );
       return res.redirect("/");
     }
   });

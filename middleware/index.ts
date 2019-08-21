@@ -8,6 +8,7 @@ import {
 } from "samlify/types/src/types";
 import { IdentityProvider } from "samlify/types/src/entity-idp";
 import { ServiceProvider } from "samlify/types/src/entity-sp";
+import { stringify, ParsedUrlQueryInput } from "querystring";
 
 export type SSOProvider = "okta" | "azure";
 
@@ -23,12 +24,25 @@ const binding = samlify.Constants.namespace.binding;
 
 samlify.setSchemaValidator(validator);
 
+interface ECSOptions {
+  provider?: SSOProvider;
+  encrypted?: boolean;
+}
 /**
  * To use https, inject a url through an environment variable, e.g.
  * ASSERTION_URL=https://abc.ngrok.io/sp/acs yarn dev
  */
-const getAssertionUrl = () => {
-  return process.env["ASSERTION_URL"] || "http://localhost:8080/sp/acs";
+const getAssertionUrl = (queryParams: ECSOptions) => {
+  // We have no control over the okta login urls so remove that from the query params
+  if (queryParams.provider) {
+    delete queryParams.provider;
+  }
+  const baseUrl =
+    process.env["ASSERTION_URL"] || "http://localhost:8080/sp/acs";
+  const query = stringify(queryParams as ParsedUrlQueryInput);
+  const result = baseUrl + (query ? `?${query}` : "");
+  console.log(result);
+  return result;
 };
 
 const createIdentityProvider = (
@@ -52,7 +66,10 @@ const createIdentityProvider = (
   }
 };
 
-const createServiceProvider = (options: ServiceProviderSettings) => {
+const createServiceProvider = (
+  options: ServiceProviderSettings,
+  queryParams: ECSOptions
+) => {
   try {
     const commonOptions: ServiceProviderSettings = {
       entityID: "samlify-test",
@@ -67,7 +84,7 @@ const createServiceProvider = (options: ServiceProviderSettings) => {
       assertionConsumerService: [
         {
           Binding: binding.post,
-          Location: getAssertionUrl()
+          Location: getAssertionUrl(queryParams)
         }
       ]
     };
@@ -97,35 +114,35 @@ const oktaIdpEnc = createIdentityProvider("/../metadata/okta-enc.xml", {
 });
 
 // configure our service provider (your application)
-const sp = createServiceProvider({});
+const spOkta = createServiceProvider({}, { provider: "okta" });
+
+const spAzure = createServiceProvider(
+  { wantMessageSigned: false },
+  { provider: "azure" }
+);
 
 // encrypted response
-const spEnc = createServiceProvider({
-  isAssertionEncrypted: true,
-  encPrivateKey: fs.readFileSync(__dirname + "/../key/encrypt/privkey.pem"),
-  assertionConsumerService: [
-    {
-      Binding: binding.post,
-      Location: getAssertionUrl() + "?encrypted=true"
-    }
-  ]
-});
+const spEnc = createServiceProvider(
+  {
+    isAssertionEncrypted: true,
+    encPrivateKey: fs.readFileSync(__dirname + "/../key/encrypt/privkey.pem")
+  },
+  { provider: "okta", encrypted: true }
+);
 
 export const assignEntity: RequestHandler = (req, res, next) => {
-  const {
-    provider = "okta",
-    encrypted = false
-  }: { provider?: SSOProvider; encrypted?: boolean } = req.query || {};
+  console.info("assignEntity: " + JSON.stringify(req.query || {}));
+  const { provider = "okta", encrypted = false }: ECSOptions = req.query || {};
   if (provider === "azure") {
     req.idp = azureIdp;
-    req.sp = sp;
+    req.sp = spAzure;
   } else {
     if (encrypted) {
       req.idp = oktaIdpEnc;
       req.sp = spEnc;
     } else {
       req.idp = oktaIdp;
-      req.sp = sp;
+      req.sp = spOkta;
     }
   }
   req.ssoProvider = provider;
