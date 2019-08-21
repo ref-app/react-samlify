@@ -23,11 +23,23 @@ const binding = samlify.Constants.namespace.binding;
 
 samlify.setSchemaValidator(validator);
 
+/**
+ * To use https, inject a url through an environment variable, e.g.
+ * ASSERTION_URL=https://abc.ngrok.io/sp/acs yarn dev
+ */
+const getAssertionUrl = () => {
+  return process.env["ASSERTION_URL"] || "http://localhost:8080/sp/acs";
+};
+
 const createIdentityProvider = (
   metadataPath: string,
   options: IdentityProviderSettings
 ) => {
   try {
+    if (!fs.existsSync(__dirname + metadataPath)) {
+      console.warn(`Cannot load ${metadataPath}`);
+      return undefined;
+    }
     const metadata = fs.readFileSync(__dirname + metadataPath);
     const result = samlify.IdentityProvider({
       metadata,
@@ -55,7 +67,7 @@ const createServiceProvider = (options: ServiceProviderSettings) => {
       assertionConsumerService: [
         {
           Binding: binding.post,
-          Location: "http://localhost:8080/sp/acs"
+          Location: getAssertionUrl()
         }
       ]
     };
@@ -94,7 +106,7 @@ const spEnc = createServiceProvider({
   assertionConsumerService: [
     {
       Binding: binding.post,
-      Location: "http://localhost:8080/sp/acs?encrypted=true"
+      Location: getAssertionUrl() + "?encrypted=true"
     }
   ]
 });

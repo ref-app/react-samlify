@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as bodyParser from "body-parser";
 import { getUser, createToken, verifyToken } from "./services/auth";
-import { assignEntity, SSOProvider } from "./middleware";
+import { assignEntity } from "./middleware";
 import * as express from "express";
 
 export default function server(app: express.Application) {
